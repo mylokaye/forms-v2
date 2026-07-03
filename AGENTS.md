@@ -17,7 +17,7 @@ This project is a lightweight single-file HTML form experience. The goal is to k
 9. Do not use inline event handlers such as `onclick=""`, `onchange=""`, or `onsubmit=""`; attach events in the `<script>` block instead.
 10. All layouts must be responsive, mobile-first, and free from unnecessary console logging.
 
-README Maintenance
+## README Maintenance
 
 1. Update README.md whenever a new feature is added.
 2. Update README.md whenever existing behaviour changes.
@@ -48,6 +48,13 @@ The project should normally use one file:
 ├─ README.md
 └─ AGENTS.md
 ```
+
+Before building or changing the form, confirm these setup requirements:
+
+1. `AGENTS.md` contains the project rules.
+2. `README.md` describes the current form behaviour and limitations.
+3. `index.html` is the only implementation file once the form exists.
+4. No separate CSS, JavaScript, framework, build, or asset files are required unless explicitly approved.
 
 The `index.html` file should contain:
 
