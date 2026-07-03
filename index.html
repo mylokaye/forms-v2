@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email Verification Form</title>
+
+  <style>
+    /* 1. Design tokens */
+    :root {
+      --color-bg: #f6f8fb;
+      --color-surface: #ffffff;
+      --color-text: #172033;
+      --color-muted: #667085;
+      --color-border: #d0d5dd;
+      --color-primary: #005eb8;
+      --color-primary-hover: #004a94;
+      --color-button-muted: #98a2b3;
+      --color-button-muted-hover: #667085;
+      --color-error: #b42318;
+      --color-focus: #7cc4ff;
+      --color-success: #027a48;
+
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2rem;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+
+      --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+    }
+
+    /* 2. Reset / base styles */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    /* 3. Layout */
+    .page-shell {
+      width: 100%;
+      max-width: 34rem;
+      margin: 0 auto;
+      padding: var(--space-xl) var(--space-md);
+    }
+
+    .form-shell {
+      display: grid;
+      gap: var(--space-lg);
+      padding: var(--space-lg);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .form-header {
+      display: grid;
+      gap: var(--space-xs);
+    }
+
+    .form-header__title {
+      margin: 0;
+      font-size: 1.5rem;
+      line-height: 1.2;
+    }
+
+    .form-header__text {
+      margin: 0;
+      color: var(--color-muted);
+    }
+
+    /* 4. Form components */
+    .form {
+      display: grid;
+      gap: var(--space-md);
+    }
+
+    .form__section {
+      display: grid;
+      gap: var(--space-md);
+    }
+
+    .form__section[hidden] {
+      display: none;
+    }
+
+    .form__section--full-width {
+      grid-column: 1 / -1;
+    }
+
+    .form__field {
+      display: grid;
+      gap: var(--space-sm);
+    }
+
+    .form__control {
+      position: relative;
+    }
+
+    .form__label {
+      font-weight: 700;
+    }
+
+    .form__input {
+      width: 100%;
+      min-height: 44px;
+      padding: 0.75rem;
+      resize: vertical;
+      color: var(--color-text);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+    }
+
+    .form__control .form__input {
+      padding-right: 2.75rem;
+    }
+
+    .form__input:focus {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px var(--color-focus);
+      outline: none;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .form__validation-icon {
+      position: absolute;
+      top: 50%;
+      right: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.5rem;
+      height: 1.5rem;
+      color: #ffffff;
+      border-radius: 999px;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .form__validation-icon[hidden] {
+      display: none;
+    }
+
+    .form__validation-icon--success {
+      background: var(--color-success);
+    }
+
+    .form__validation-icon--error {
+      background: var(--color-error);
+    }
+
+    .form__validation-icon svg {
+      width: 1rem;
+      height: 1rem;
+      stroke: currentColor;
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    /* 5. Buttons */
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 44px;
+      padding: 0.75rem 1rem;
+      color: #ffffff;
+      font-weight: 700;
+      text-align: center;
+      background: var(--color-button-muted);
+      border: 1px solid var(--color-button-muted);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+
+    .button:hover {
+      background: var(--color-button-muted-hover);
+      border-color: var(--color-button-muted-hover);
+    }
+
+    .button--ready {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+    }
+
+    .button--ready:hover {
+      background: var(--color-primary-hover);
+      border-color: var(--color-primary-hover);
+    }
+
+    .button:focus {
+      box-shadow: 0 0 0 3px var(--color-focus);
+      outline: none;
+    }
+
+    .button:disabled {
+      cursor: wait;
+      opacity: 0.85;
+    }
+
+    /* 6. Messages and validation */
+    .form__message {
+      margin: 0;
+      color: var(--color-muted);
+      font-size: 0.9375rem;
+    }
+
+    .form__message--error {
+      color: var(--color-error);
+    }
+
+    /* 7. Responsive rules */
+    @media (min-width: 48rem) {
+      .page-shell {
+        padding-top: 4rem;
+      }
+
+      .form__section--two-columns {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page-shell">
+    <section class="form-shell" aria-labelledby="form-heading">
+      <div class="form-header">
+        <h1 id="form-heading" class="form-header__title">Verify your email</h1>
+        <p class="form-header__text">Enter your email address to get started.</p>
+      </div>
+
+      <form class="form" novalidate>
+        <div class="form__field">
+          <label class="form__label" for="email">Email address</label>
+          <div class="form__control">
+            <input
+              class="form__input"
+              id="email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              inputmode="email"
+              aria-describedby="email-validation-status"
+              aria-invalid="false"
+            >
+            <span
+              class="form__validation-icon"
+              id="email-validation-icon"
+              aria-hidden="true"
+              hidden
+            ></span>
+          </div>
+          <span id="email-validation-status" class="visually-hidden" aria-live="polite"></span>
+        </div>
+
+        <div class="form__section form__section--two-columns" id="verified-fields" hidden>
+          <div class="form__field">
+            <label class="form__label" for="first-name">First name</label>
+            <input
+              class="form__input"
+              id="first-name"
+              name="firstName"
+              type="text"
+              autocomplete="given-name"
+            >
+          </div>
+
+          <div class="form__field">
+            <label class="form__label" for="last-name">Last name</label>
+            <input
+              class="form__input"
+              id="last-name"
+              name="lastName"
+              type="text"
+              autocomplete="family-name"
+            >
+          </div>
+
+          <div class="form__field">
+            <label class="form__label" for="website">Website</label>
+            <input
+              class="form__input"
+              id="website"
+              name="website"
+              type="url"
+              autocomplete="url"
+            >
+          </div>
+
+          <div class="form__field">
+            <label class="form__label" for="company-name">Company name</label>
+            <input
+              class="form__input"
+              id="company-name"
+              name="companyName"
+              type="text"
+              autocomplete="organization"
+            >
+          </div>
+        </div>
+
+        <div class="form__section form__section--two-columns" id="enriched-fields" hidden>
+          <div class="form__field">
+            <label class="form__label" for="industry">Industry</label>
+            <input
+              class="form__input"
+              id="industry"
+              name="industry"
+              type="text"
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="form__field">
+            <label class="form__label" for="role">Role</label>
+            <input
+              class="form__input"
+              id="role"
+              name="role"
+              type="text"
+              autocomplete="organization-title"
+            >
+          </div>
+
+          <div class="form__field form__section--full-width">
+            <label class="form__label" for="about">About</label>
+            <textarea
+              class="form__input"
+              id="about"
+              name="about"
+              rows="4"
+            ></textarea>
+          </div>
+        </div>
+
+        <button
+          class="button"
+          type="button"
+          id="verify-button"
+          aria-controls="verified-fields enriched-fields"
+          aria-expanded="false"
+        >
+          Verify
+        </button>
+        <p class="form__message" id="form-message" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    // 1. DOM references
+    const emailField = document.getElementById("email");
+    const validationIcon = document.getElementById("email-validation-icon");
+    const validationStatus = document.getElementById("email-validation-status");
+    const verifyButton = document.getElementById("verify-button");
+    const verifiedFields = document.getElementById("verified-fields");
+    const firstNameField = document.getElementById("first-name");
+    const lastNameField = document.getElementById("last-name");
+    const websiteField = document.getElementById("website");
+    const companyNameField = document.getElementById("company-name");
+    const enrichedFields = document.getElementById("enriched-fields");
+    const industryField = document.getElementById("industry");
+    const roleField = document.getElementById("role");
+    const aboutField = document.getElementById("about");
+    const formMessage = document.getElementById("form-message");
+
+    // 2. Configuration
+    const COMPANY_ENRICHMENT_ENDPOINT = "http://127.0.0.1:8787/enrich-company";
+
+    // 3. Utility functions
+    function capitaliseWord(value) {
+      if (!value) return "";
+
+      return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    }
+
+    function createIconPath(d) {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+
+      path.setAttribute("d", d);
+
+      return path;
+    }
+
+    function createIcon(paths) {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("focusable", "false");
+      paths.forEach((path) => svg.appendChild(createIconPath(path)));
+
+      return svg;
+    }
+
+    function setValidationIcon(isValid) {
+      if (!validationIcon) return;
+
+      validationIcon.hidden = false;
+      validationIcon.classList.toggle("form__validation-icon--success", isValid);
+      validationIcon.classList.toggle("form__validation-icon--error", !isValid);
+      validationIcon.replaceChildren(
+        isValid
+          ? createIcon(["M5 12.5l4 4L19 7"])
+          : createIcon(["M7 7l10 10", "M17 7L7 17"])
+      );
+    }
+
+    // 4. Validation functions
+    function isValidEmail(value) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+    }
+
+    function getEmailParts(value) {
+      const trimmedValue = value.trim();
+      const atIndex = trimmedValue.indexOf("@");
+
+      if (atIndex === -1) {
+        return {
+          localPart: "",
+          domain: ""
+        };
+      }
+
+      return {
+        localPart: trimmedValue.slice(0, atIndex),
+        domain: trimmedValue.slice(atIndex + 1).toLowerCase()
+      };
+    }
+
+    function getNameParts(localPart) {
+      // Auto-fill is heuristic until a real verification data source is connected.
+      const parts = localPart
+        .split(/[._-]+/)
+        .map((part) => part.replace(/[^a-zA-Z]/g, ""))
+        .filter(Boolean);
+
+      return {
+        firstName: capitaliseWord(parts[0] || ""),
+        lastName: capitaliseWord(parts.slice(1).join(" "))
+      };
+    }
+
+    function getCompanyName(domain) {
+      const hostName = domain
+        .replace(/^www\./, "")
+        .split(".")[0] || "";
+
+      return hostName
+        .split(/[-_]+/)
+        .filter(Boolean)
+        .map(capitaliseWord)
+        .join(" ");
+    }
+
+    function getFieldValue(field) {
+      return field ? field.value.trim() : "";
+    }
+
+    // 5. State / UI functions
+    function setFormMessage(message, isError = false) {
+      if (!formMessage) return;
+
+      formMessage.textContent = message;
+      formMessage.classList.toggle("form__message--error", isError);
+    }
+
+    function hideEnrichedFields() {
+      if (enrichedFields) {
+        enrichedFields.hidden = true;
+      }
+
+      if (industryField) {
+        industryField.value = "";
+      }
+
+      if (roleField) {
+        roleField.value = "";
+      }
+
+      if (aboutField) {
+        aboutField.value = "";
+      }
+    }
+
+    function hideVerifiedFields() {
+      if (verifiedFields) {
+        verifiedFields.hidden = true;
+      }
+
+      hideEnrichedFields();
+
+      if (verifyButton) {
+        verifyButton.setAttribute("aria-expanded", "false");
+      }
+    }
+
+    function resetValidationFeedback() {
+      if (validationIcon) {
+        validationIcon.hidden = true;
+        validationIcon.replaceChildren();
+      }
+
+      if (emailField) {
+        emailField.setAttribute("aria-invalid", "false");
+      }
+
+      if (validationStatus) {
+        validationStatus.textContent = "";
+      }
+    }
+
+    function populateVerifiedFields() {
+      if (
+        !emailField ||
+        !firstNameField ||
+        !lastNameField ||
+        !websiteField ||
+        !companyNameField ||
+        !verifiedFields ||
+        !verifyButton
+      ) {
+        return;
+      }
+
+      const emailParts = getEmailParts(emailField.value);
+      const nameParts = getNameParts(emailParts.localPart);
+
+      firstNameField.value = nameParts.firstName;
+      lastNameField.value = nameParts.lastName;
+      websiteField.value = emailParts.domain ? `https://${emailParts.domain}` : "";
+      companyNameField.value = getCompanyName(emailParts.domain);
+      verifiedFields.hidden = false;
+      verifyButton.setAttribute("aria-expanded", "true");
+      verifyButton.classList.remove("button--ready");
+      setFormMessage("Email verified. Press Verify again to enrich company details.");
+    }
+
+    function updateEmailValidation() {
+      if (!emailField || !validationStatus) return;
+
+      const isValid = isValidEmail(emailField.value);
+
+      emailField.setAttribute("aria-invalid", String(!isValid));
+      validationStatus.textContent = isValid
+        ? "Email address looks valid."
+        : "Enter a valid email address.";
+      setValidationIcon(isValid);
+
+      if (isValid) {
+        populateVerifiedFields();
+      } else {
+        hideVerifiedFields();
+      }
+    }
+
+    function setVerifyLoading(isLoading) {
+      if (!verifyButton) return;
+
+      verifyButton.disabled = isLoading;
+      verifyButton.textContent = isLoading ? "Verifying..." : "Verify";
+    }
+
+    async function enrichCompanyDetails() {
+      if (!websiteField || !industryField || !roleField || !aboutField || !enrichedFields) return;
+
+      const companyUrl = getFieldValue(websiteField);
+
+      if (!companyUrl) {
+        setFormMessage("Enter a company website before verifying company details.", true);
+        return;
+      }
+
+      setVerifyLoading(true);
+      setFormMessage("Checking company details...");
+
+      try {
+        const response = await fetch(COMPANY_ENRICHMENT_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            companyUrl,
+            firstName: getFieldValue(firstNameField),
+            lastName: getFieldValue(lastNameField),
+            companyName: getFieldValue(companyNameField)
+          })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || "Company enrichment failed.");
+        }
+
+        industryField.value = result.industry || "";
+        roleField.value = result.role || "";
+        aboutField.value = result.about || "";
+        enrichedFields.hidden = false;
+        setFormMessage("Company details verified.");
+      } catch (error) {
+        const message = error instanceof TypeError
+          ? "Company enrichment proxy is not running."
+          : error.message || "Company enrichment failed.";
+
+        setFormMessage(message, true);
+      } finally {
+        setVerifyLoading(false);
+      }
+    }
+
+    function updateVerifyButtonState() {
+      if (!emailField || !verifyButton) return;
+
+      verifyButton.classList.toggle("button--ready", isValidEmail(emailField.value));
+      resetValidationFeedback();
+      hideVerifiedFields();
+      setFormMessage("");
+    }
+
+    // 7. Event listeners
+    if (emailField) {
+      emailField.addEventListener("input", updateVerifyButtonState);
+    }
+
+    if (verifyButton) {
+      verifyButton.addEventListener("click", () => {
+        if (verifiedFields && !verifiedFields.hidden) {
+          enrichCompanyDetails();
+          return;
+        }
+
+        updateEmailValidation();
+      });
+    }
+  </script>
+</body>
+</html>
