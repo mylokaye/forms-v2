@@ -256,13 +256,16 @@
       }
     }
   </style>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tacit@1.0.0/dist/tacit.min.css" />
+  
 </head>
 <body>
   <main class="page-shell">
     <section class="form-shell" aria-labelledby="form-heading">
       <div class="form-header">
-        <h1 id="form-heading" class="form-header__title">Verify your email</h1>
-        <p class="form-header__text">Enter your email address to get started.</p>
+        <h1 id="form-heading" class="form-header__title">Inquiry</h1>
+        <p class="form-header__text"></p>
       </div>
 
       <form class="form" novalidate>
@@ -276,6 +279,7 @@
               type="email"
               autocomplete="email"
               inputmode="email"
+              value="mylo.kaye@norican.com"
               aria-describedby="email-validation-status"
               aria-invalid="false"
             >
@@ -376,7 +380,7 @@
           aria-controls="verified-fields enriched-fields"
           aria-expanded="false"
         >
-          Verify
+          Continue
         </button>
         <p class="form__message" id="form-message" aria-live="polite"></p>
       </form>
@@ -492,6 +496,11 @@
       return field ? field.value.trim() : "";
     }
 
+    function hasVerifiedFieldEntries() {
+      return [firstNameField, lastNameField, websiteField, companyNameField]
+        .every((field) => getFieldValue(field));
+    }
+
     // 5. State / UI functions
     function setFormMessage(message, isError = false) {
       if (!formMessage) return;
@@ -567,8 +576,8 @@
       companyNameField.value = getCompanyName(emailParts.domain);
       verifiedFields.hidden = false;
       verifyButton.setAttribute("aria-expanded", "true");
-      verifyButton.classList.remove("button--ready");
-      setFormMessage("Email verified. Press Verify again to enrich company details.");
+      updateVerifiedButtonState();
+      setFormMessage("Check Website & Company name to Continue.");
     }
 
     function updateEmailValidation() {
@@ -593,7 +602,7 @@
       if (!verifyButton) return;
 
       verifyButton.disabled = isLoading;
-      verifyButton.textContent = isLoading ? "Verifying..." : "Verify";
+      verifyButton.textContent = isLoading ? "One moment..." : "Continue";
     }
 
     async function enrichCompanyDetails() {
@@ -607,7 +616,7 @@
       }
 
       setVerifyLoading(true);
-      setFormMessage("Checking company details...");
+      setFormMessage("");
 
       try {
         const response = await fetch(COMPANY_ENRICHMENT_ENDPOINT, {
@@ -654,10 +663,22 @@
       setFormMessage("");
     }
 
+    function updateVerifiedButtonState() {
+      if (!verifyButton || !verifiedFields || verifiedFields.hidden) return;
+
+      verifyButton.classList.toggle("button--ready", hasVerifiedFieldEntries());
+    }
+
     // 7. Event listeners
     if (emailField) {
       emailField.addEventListener("input", updateVerifyButtonState);
     }
+
+    [firstNameField, lastNameField, websiteField, companyNameField]
+      .filter(Boolean)
+      .forEach((field) => {
+        field.addEventListener("input", updateVerifiedButtonState);
+      });
 
     if (verifyButton) {
       verifyButton.addEventListener("click", () => {

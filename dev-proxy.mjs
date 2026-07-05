@@ -1,9 +1,49 @@
 import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
 
 const PORT = 8787;
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
 const MODEL = "deepseek-v4-flash";
 const ROLE_LOOKUP_TIMEOUT_MS = 5000;
+const ENV_FILES = [".env.local", ".env"];
+
+function loadLocalEnv() {
+  ENV_FILES.forEach((fileName) => {
+    const filePath = path.join(process.cwd(), fileName);
+
+    if (!fs.existsSync(filePath)) {
+      return;
+    }
+
+    const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
+
+    lines.forEach((line) => {
+      const trimmedLine = line.trim();
+
+      if (!trimmedLine || trimmedLine.startsWith("#")) {
+        return;
+      }
+
+      const separatorIndex = trimmedLine.indexOf("=");
+
+      if (separatorIndex === -1) {
+        return;
+      }
+
+      const key = trimmedLine.slice(0, separatorIndex).trim();
+      const value = trimmedLine.slice(separatorIndex + 1).trim();
+
+      if (!key || process.env[key]) {
+        return;
+      }
+
+      process.env[key] = value.replace(/^["']|["']$/g, "");
+    });
+  });
+}
+
+loadLocalEnv();
 
 function sendJson(response, statusCode, payload) {
   response.writeHead(statusCode, {
@@ -54,8 +94,8 @@ function getRolePrompt({ firstName, lastName, companyName }) {
 - "confidence": an integer from 0 to 100 showing how confident you are that the role is accurate
 The first name and last name must match exactly. Do not return a role for partial, nickname, alternate spelling, or initials-only name matches.
 The company name may deviate slightly if it is clearly the same organisation, such as a group name, legal suffix, regional entity, or minor punctuation difference.
-Only return a role when you are at least 80% confident it is accurate.
-If no current role is found or confidence is below 80, return {"role": "", "confidence": 0}.`;
+Only return a role when you are at least 70% confident it is accurate.
+If no current role is found or confidence is below 70, return {"role": "", "confidence": 0}.`;
 }
 
 function parseDeepSeekJson(content) {

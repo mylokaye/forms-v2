@@ -23,8 +23,8 @@ Required project files:
   - Required: no
   - Autocomplete: `email`
   - Input mode: `email`
-  - Validation indicator: icon shown inside the field after pressing `Verify`
-  - Button state: grey until the email looks valid, blue before email verification, then grey again after the detail fields are shown
+  - Validation indicator: icon shown inside the field after pressing `Continue`
+  - Button state: grey until the email looks valid, blue before email verification, then blue again once first name, last name, website, and company name all have entries
 - First name
   - Field name: `firstName`
   - Input type: `text`
@@ -84,15 +84,15 @@ Any future `type="hidden"` fields should remain visible in the HTML source and b
 
 ## Validation Rules
 
-The `Verify` button is grey until the email value looks like a valid email address, then it turns blue. Pressing `Verify` checks the current value. A green tick appears inside the field when the value passes validation, and a red cross appears when it fails.
+The `Continue` button is grey until the email value looks like a valid email address, then it turns blue. Pressing `Continue` checks the current value. A green tick appears inside the field when the value passes validation, and a red cross appears when it fails.
 
-When the email value passes validation, the first name, last name, website, and company name fields are shown and auto-populated from the email address. The company name is capitalised from the email host name. The `Verify` button then sits below the detail fields and returns to grey, ready for the next verification step.
+When the email value passes validation, the first name, last name, website, and company name fields are shown and auto-populated from the email address. The company name is capitalised from the email host name. The `Continue` button then sits below the detail fields and turns blue once first name, last name, website, and company name all have entries.
 
-Pressing `Verify` again calls the local DeepSeek proxy with the website URL, first name, last name, and company name. When enrichment succeeds, the industry, role, and about fields are shown and auto-populated from the JSON response. The role lookup asks DeepSeek to check LinkedIn for the person at the company. The first and last name must match exactly, while the company name may deviate slightly when it is clearly the same organisation. The role is only used when DeepSeek reports at least 80% confidence. If no role is found within 5 seconds, or confidence is below 80%, the role field is left empty. If the email changes before verification is pressed again, those fields are hidden until the new value is verified.
+Pressing `Continue` again calls the local DeepSeek proxy with the website URL, first name, last name, and company name. When enrichment succeeds, the industry, role, and about fields are shown and auto-populated from the JSON response. The role lookup asks DeepSeek to check LinkedIn for the person at the company. The first and last name must match exactly, while the company name may deviate slightly when it is clearly the same organisation. The role is only used when DeepSeek reports at least 80% confidence. If no role is found within 5 seconds, or confidence is below 80%, the role field is left empty. If the email changes before verification is pressed again, those fields are hidden until the new value is verified.
 
 ## Submission Behaviour
 
-The `Verify` button validates the email field in the browser only at first. After email verification, pressing it again posts the company website, first name, last name, and company name to the local-only proxy at `http://127.0.0.1:8787/enrich-company`. The proxy calls DeepSeek and returns only `industry`, `role`, and `about`.
+The `Continue` button validates the email field in the browser only at first. After email verification, pressing it again posts the company website, first name, last name, and company name to the local-only proxy at `http://127.0.0.1:8787/enrich-company`. The proxy calls DeepSeek and returns only `industry`, `role`, and `about`.
 
 The form does not submit to a live backend and does not send the full form payload anywhere.
 
@@ -102,7 +102,7 @@ No consent or marketing opt-in fields have been implemented yet.
 
 Future consent fields should be clear, specific, and separate from general form submission. Consent checkboxes must not be pre-selected. Do not add analytics, cookies, localStorage, sessionStorage, tracking pixels, or personal-data logging without explicit approval.
 
-The DeepSeek API key must not be placed in `index.html`. For local testing, provide it as the `DEEPSEEK_API_KEY` environment variable when starting `dev-proxy.mjs`.
+The DeepSeek API key must not be placed in `index.html`. For local testing, provide it as the `DEEPSEEK_API_KEY` environment variable when starting `dev-proxy.mjs`, or put it in a local `.env.local` file that is not committed to git.
 
 ## Browser Support
 
@@ -122,7 +122,7 @@ Verified detail fields are stacked on mobile and display in two columns on wider
 ## Known Limitations
 
 - The DeepSeek integration depends on the local `dev-proxy.mjs` helper being running.
-- Pressing `Verify` only shows local validation feedback until the email has been verified.
+- Pressing `Continue` only shows local validation feedback until the email has been verified.
 - Auto-populated names and company details are simple guesses from the email address and may need user correction.
 - DeepSeek output is model-generated and should be reviewed before use.
 - The role lookup depends on model-accessible LinkedIn information and is intentionally left blank if no result is found within 5 seconds or confidence is below 80%.
@@ -136,10 +136,22 @@ Run the static form server:
 python3 -m http.server 8000
 ```
 
-In a second terminal, run the local proxy with the API key in an environment variable:
+In a second terminal, run the local proxy. You can either pass the API key directly:
 
 ```sh
 DEEPSEEK_API_KEY="your-key-here" node dev-proxy.mjs
+```
+
+Or create a local `.env.local` file:
+
+```sh
+DEEPSEEK_API_KEY="your-key-here"
+```
+
+Then run:
+
+```sh
+node dev-proxy.mjs
 ```
 
 The proxy sends this prompt to DeepSeek:
@@ -170,7 +182,7 @@ The proxy also asks DeepSeek to check LinkedIn for the person's role using first
 - Updated the `Verify` button so it is grey until a valid-looking email is detected, then blue.
 - Added first name, last name, website, and company name fields that stay hidden until email verification succeeds, then auto-populate from the email.
 - Updated verified detail fields to use a two-column layout on wider screens.
-- Moved the `Verify` button below the verified detail fields once they are shown and reset it to grey after email verification.
+- Updated the `Continue` button so it turns blue once first name, last name, website, and company name all have entries.
 - Added a local DeepSeek proxy flow that enriches industry and about fields after email verification.
 - Added a role field populated by a 5-second DeepSeek LinkedIn lookup when available.
 - Added an 80% confidence threshold before any role value is shown.
