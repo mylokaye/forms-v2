@@ -15,7 +15,8 @@
       --color-border: #d0d5dd;
       --color-primary: #005eb8;
       --color-primary-hover: #004a94;
-      --color-button-muted: #98a2b3;
+      --color-button-muted: #d1d7e1;
+      --color-button-muted-border: #bac2ce;
       --color-button-muted-hover: #667085;
       --color-error: #b42318;
       --color-focus: #7cc4ff;
@@ -93,16 +94,25 @@
     /* 4. Form components */
     .form {
       display: grid;
-      gap: var(--space-md);
+      gap: var(--space-lg);
     }
 
     .form__section {
       display: grid;
-      gap: var(--space-md);
+      gap: var(--space-lg);
     }
 
     .form__section[hidden] {
       display: none;
+    }
+
+    .form-page[hidden] {
+      display: none;
+    }
+
+    .form-page {
+      display: grid;
+      gap: var(--space-lg);
     }
 
     .form__section--full-width {
@@ -110,8 +120,8 @@
     }
 
     .form__field {
+      position: relative;
       display: grid;
-      gap: var(--space-sm);
     }
 
     .form__control {
@@ -119,13 +129,29 @@
     }
 
     .form__label {
-      font-weight: 700;
+      position: absolute;
+      top: 0.55rem;
+      left: 0.75rem;
+      z-index: 1;
+      max-width: calc(100% - 1.5rem);
+      overflow: hidden;
+      color: var(--color-muted);
+      font-size: 0.8125rem;
+      font-weight: 400;
+      line-height: 1.2;
+      pointer-events: none;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .form__field:focus-within .form__label {
+      color: var(--color-primary);
     }
 
     .form__input {
       width: 100%;
-      min-height: 44px;
-      padding: 0.75rem;
+      min-height: 4.25rem;
+      padding: 1.85rem 0.75rem 0.65rem;
       resize: vertical;
       color: var(--color-text);
       background: var(--color-surface);
@@ -143,6 +169,15 @@
       outline: none;
     }
 
+    .form .form__input:focus {
+      border-color: var(--color-primary);
+    }
+
+    textarea.form__input {
+      min-height: 7.5rem;
+      line-height: 1.45;
+    }
+
     .visually-hidden {
       position: absolute;
       width: 1px;
@@ -157,7 +192,7 @@
 
     .form__validation-icon {
       position: absolute;
-      top: 50%;
+      top: 2.65rem;
       right: 0.75rem;
       display: inline-flex;
       align-items: center;
@@ -204,9 +239,13 @@
       font-weight: 700;
       text-align: center;
       background: var(--color-button-muted);
-      border: 1px solid var(--color-button-muted);
+      border: 1px solid var(--color-button-muted-border);
       border-radius: var(--radius-sm);
       cursor: pointer;
+    }
+
+    .button[hidden] {
+      display: none;
     }
 
     .button:hover {
@@ -222,6 +261,16 @@
     .button--ready:hover {
       background: var(--color-primary-hover);
       border-color: var(--color-primary-hover);
+    }
+
+    .button--secondary {
+      background: var(--color-button-muted);
+      border-color: var(--color-button-muted-border);
+    }
+
+    .button--secondary:hover {
+      background: var(--color-button-muted-hover);
+      border-color: var(--color-button-muted-hover);
     }
 
     .button:focus {
@@ -245,6 +294,25 @@
       color: var(--color-error);
     }
 
+    .form__actions {
+      display: flex;
+      gap: var(--space-md);
+      justify-content: space-between;
+    }
+
+    .form__actions .button {
+      width: calc((100% - (var(--space-md) * 2)) / 3);
+    }
+
+    .form__actions .button:last-child {
+      margin-left: auto;
+      width: min(219px, calc(((100% - (var(--space-md) * 2)) / 3) * 2));
+    }
+
+    .form__actions .button--secondary {
+      font-weight: 300;
+    }
+
     /* 7. Responsive rules */
     @media (min-width: 48rem) {
       .page-shell {
@@ -254,11 +322,11 @@
       .form__section--two-columns {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+
     }
   </style>
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tacit@1.0.0/dist/tacit.min.css" />
-  
+
 </head>
 <body>
   <main class="page-shell">
@@ -269,31 +337,43 @@
       </div>
 
       <form class="form" novalidate>
-        <div class="form__field">
-          <label class="form__label" for="email">Email address</label>
-          <div class="form__control">
-            <input
-              class="form__input"
-              id="email"
-              name="email"
-              type="email"
-              autocomplete="email"
-              inputmode="email"
-              value="mylo.kaye@norican.com"
-              aria-describedby="email-validation-status"
-              aria-invalid="false"
-            >
-            <span
-              class="form__validation-icon"
-              id="email-validation-icon"
-              aria-hidden="true"
-              hidden
-            ></span>
+        <div class="form-page" id="page-1">
+          <div class="form__field">
+            <label class="form__label" for="email">Email address</label>
+            <div class="form__control">
+              <input
+                class="form__input"
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                inputmode="email"
+                value="mylo.kaye@google.com"
+                aria-describedby="email-validation-status"
+                aria-invalid="false"
+              >
+              <span
+                class="form__validation-icon"
+                id="email-validation-icon"
+                aria-hidden="true"
+                hidden
+              ></span>
+            </div>
+            <span id="email-validation-status" class="visually-hidden" aria-live="polite"></span>
           </div>
-          <span id="email-validation-status" class="visually-hidden" aria-live="polite"></span>
+
+          <div class="form__field">
+            <label class="form__label" for="message">Message</label>
+            <textarea
+              class="form__input"
+              id="message"
+              name="message"
+              rows="3"
+            ></textarea>
+          </div>
         </div>
 
-        <div class="form__section form__section--two-columns" id="verified-fields" hidden>
+        <div class="form-page form__section form__section--two-columns" id="verified-fields" hidden>
           <div class="form__field">
             <label class="form__label" for="first-name">First name</label>
             <input
@@ -337,9 +417,7 @@
               autocomplete="organization"
             >
           </div>
-        </div>
 
-        <div class="form__section form__section--two-columns" id="enriched-fields" hidden>
           <div class="form__field">
             <label class="form__label" for="industry">Industry</label>
             <input
@@ -361,7 +439,9 @@
               autocomplete="organization-title"
             >
           </div>
+        </div>
 
+        <div class="form-page form__section form__section--two-columns" id="enriched-fields" hidden>
           <div class="form__field form__section--full-width">
             <label class="form__label" for="about">About</label>
             <textarea
@@ -371,17 +451,60 @@
               rows="4"
             ></textarea>
           </div>
+
+          <div class="form__field">
+            <label class="form__label" for="urgency">Urgency</label>
+            <input
+              class="form__input"
+              id="urgency"
+              name="urgency"
+              type="text"
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="form__field">
+            <label class="form__label" for="sentiment">Sentiment</label>
+            <input
+              class="form__input"
+              id="sentiment"
+              name="sentiment"
+              type="text"
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="form__field form__section--full-width">
+            <label class="form__label" for="query">Query</label>
+            <input
+              class="form__input"
+              id="query"
+              name="query"
+              type="text"
+              autocomplete="off"
+            >
+          </div>
         </div>
 
-        <button
-          class="button"
-          type="button"
-          id="verify-button"
-          aria-controls="verified-fields enriched-fields"
-          aria-expanded="false"
-        >
-          Continue
-        </button>
+        <div class="form__actions">
+          <button
+            class="button button--secondary"
+            type="button"
+            id="back-button"
+            hidden
+          >
+            Back
+          </button>
+          <button
+            class="button"
+            type="button"
+            id="verify-button"
+            aria-controls="page-1 verified-fields enriched-fields"
+            aria-expanded="false"
+          >
+            Continue
+          </button>
+        </div>
         <p class="form__message" id="form-message" aria-live="polite"></p>
       </form>
     </section>
@@ -392,6 +515,8 @@
     const emailField = document.getElementById("email");
     const validationIcon = document.getElementById("email-validation-icon");
     const validationStatus = document.getElementById("email-validation-status");
+    const pageOne = document.getElementById("page-1");
+    const backButton = document.getElementById("back-button");
     const verifyButton = document.getElementById("verify-button");
     const verifiedFields = document.getElementById("verified-fields");
     const firstNameField = document.getElementById("first-name");
@@ -402,10 +527,15 @@
     const industryField = document.getElementById("industry");
     const roleField = document.getElementById("role");
     const aboutField = document.getElementById("about");
+    const messageField = document.getElementById("message");
+    const urgencyField = document.getElementById("urgency");
+    const sentimentField = document.getElementById("sentiment");
+    const queryField = document.getElementById("query");
     const formMessage = document.getElementById("form-message");
 
     // 2. Configuration
     const COMPANY_ENRICHMENT_ENDPOINT = "http://127.0.0.1:8787/enrich-company";
+    let currentPage = 1;
 
     // 3. Utility functions
     function capitaliseWord(value) {
@@ -509,6 +639,51 @@
       formMessage.classList.toggle("form__message--error", isError);
     }
 
+    function isPrimaryReady() {
+      if (currentPage === 1) {
+        return Boolean(emailField && isValidEmail(emailField.value));
+      }
+
+      if (currentPage === 2) {
+        return hasVerifiedFieldEntries();
+      }
+
+      return true;
+    }
+
+    function updateNavigationState() {
+      if (backButton) {
+        backButton.hidden = currentPage === 1;
+      }
+
+      if (!verifyButton) return;
+
+      if (!verifyButton.disabled) {
+        verifyButton.textContent = currentPage === 3 ? "Finish" : "Continue";
+      }
+
+      verifyButton.classList.toggle("button--ready", isPrimaryReady());
+      verifyButton.setAttribute("aria-expanded", String(currentPage > 1));
+    }
+
+    function showPage(pageNumber) {
+      currentPage = pageNumber;
+
+      if (pageOne) {
+        pageOne.hidden = pageNumber === 2;
+      }
+
+      if (verifiedFields) {
+        verifiedFields.hidden = pageNumber === 1;
+      }
+
+      if (enrichedFields) {
+        enrichedFields.hidden = pageNumber !== 3;
+      }
+
+      updateNavigationState();
+    }
+
     function hideEnrichedFields() {
       if (enrichedFields) {
         enrichedFields.hidden = true;
@@ -525,6 +700,18 @@
       if (aboutField) {
         aboutField.value = "";
       }
+
+      if (urgencyField) {
+        urgencyField.value = "";
+      }
+
+      if (sentimentField) {
+        sentimentField.value = "";
+      }
+
+      if (queryField) {
+        queryField.value = "";
+      }
     }
 
     function hideVerifiedFields() {
@@ -533,10 +720,7 @@
       }
 
       hideEnrichedFields();
-
-      if (verifyButton) {
-        verifyButton.setAttribute("aria-expanded", "false");
-      }
+      showPage(1);
     }
 
     function resetValidationFeedback() {
@@ -574,10 +758,7 @@
       lastNameField.value = nameParts.lastName;
       websiteField.value = emailParts.domain ? `https://${emailParts.domain}` : "";
       companyNameField.value = getCompanyName(emailParts.domain);
-      verifiedFields.hidden = false;
-      verifyButton.setAttribute("aria-expanded", "true");
       updateVerifiedButtonState();
-      setFormMessage("Check Website & Company name to Continue.");
     }
 
     function updateEmailValidation() {
@@ -603,16 +784,31 @@
 
       verifyButton.disabled = isLoading;
       verifyButton.textContent = isLoading ? "One moment..." : "Continue";
+
+      if (!isLoading) {
+        updateNavigationState();
+      }
     }
 
     async function enrichCompanyDetails() {
-      if (!websiteField || !industryField || !roleField || !aboutField || !enrichedFields) return;
+      if (
+        !websiteField ||
+        !industryField ||
+        !roleField ||
+        !aboutField ||
+        !urgencyField ||
+        !sentimentField ||
+        !queryField ||
+        !enrichedFields
+      ) {
+        return;
+      }
 
       const companyUrl = getFieldValue(websiteField);
 
       if (!companyUrl) {
         setFormMessage("Enter a company website before verifying company details.", true);
-        return;
+        return false;
       }
 
       setVerifyLoading(true);
@@ -628,7 +824,8 @@
             companyUrl,
             firstName: getFieldValue(firstNameField),
             lastName: getFieldValue(lastNameField),
-            companyName: getFieldValue(companyNameField)
+            companyName: getFieldValue(companyNameField),
+            message: getFieldValue(messageField)
           })
         });
 
@@ -641,14 +838,18 @@
         industryField.value = result.industry || "";
         roleField.value = result.role || "";
         aboutField.value = result.about || "";
-        enrichedFields.hidden = false;
+        urgencyField.value = result.urgency || "";
+        sentimentField.value = result.sentiment || "";
+        queryField.value = result.query || "";
         setFormMessage("Company details verified.");
+        return true;
       } catch (error) {
         const message = error instanceof TypeError
           ? "Company enrichment proxy is not running."
           : error.message || "Company enrichment failed.";
 
         setFormMessage(message, true);
+        return false;
       } finally {
         setVerifyLoading(false);
       }
@@ -664,9 +865,47 @@
     }
 
     function updateVerifiedButtonState() {
-      if (!verifyButton || !verifiedFields || verifiedFields.hidden) return;
+      if (!verifyButton) return;
 
-      verifyButton.classList.toggle("button--ready", hasVerifiedFieldEntries());
+      updateNavigationState();
+    }
+
+    async function handlePrimaryAction() {
+      if (currentPage === 3) {
+        setFormMessage("Finished.");
+        return;
+      }
+
+      if (currentPage === 2) {
+        showPage(3);
+        setFormMessage("");
+        return;
+      }
+
+      updateEmailValidation();
+
+      if (!emailField || !isValidEmail(emailField.value)) {
+        setFormMessage("Enter a valid email address.", true);
+        return;
+      }
+
+      const didEnrich = await enrichCompanyDetails();
+
+      if (didEnrich) {
+        showPage(2);
+        setFormMessage("");
+      }
+    }
+
+    function handleBack() {
+      if (currentPage === 3) {
+        showPage(2);
+        setFormMessage("");
+        return;
+      }
+
+      showPage(1);
+      setFormMessage("");
     }
 
     // 7. Event listeners
@@ -680,16 +919,15 @@
         field.addEventListener("input", updateVerifiedButtonState);
       });
 
-    if (verifyButton) {
-      verifyButton.addEventListener("click", () => {
-        if (verifiedFields && !verifiedFields.hidden) {
-          enrichCompanyDetails();
-          return;
-        }
-
-        updateEmailValidation();
-      });
+    if (backButton) {
+      backButton.addEventListener("click", handleBack);
     }
+
+    if (verifyButton) {
+      verifyButton.addEventListener("click", handlePrimaryAction);
+    }
+
+    showPage(1);
   </script>
 </body>
 </html>

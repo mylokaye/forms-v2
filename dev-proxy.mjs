@@ -3,10 +3,20 @@ import fs from "node:fs";
 import path from "node:path";
 
 const PORT = 8787;
-const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
+const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
 const MODEL = "deepseek-v4-flash";
-const ROLE_LOOKUP_TIMEOUT_MS = 5000;
+const ROLE_LOOKUP_TIMEOUT_MS = 8000;
 const ENV_FILES = [".env.local", ".env"];
+const DEFAULT_SYSTEM_PROMPT = "Return valid JSON only. Do not include markdown or extra commentary.";
+const ROLE_SYSTEM_PROMPT = `You are a precise LinkedIn profile researcher. When given a person's name and company, you search the web to find their LinkedIn profile and extract their current role.
+
+Rules:
+- The first name and last name must match EXACTLY. Never return a role for partial, nickname, alternate spelling, or initials-only name matches.
+- The company name may deviate slightly if clearly the same organisation, such as a group name, legal suffix, regional entity, or minor punctuation difference.
+- If you are not confident about the role, return null.
+
+You MUST respond with ONLY valid JSON and nothing else:
+{ "role": "string or null" }`;
 
 function loadLocalEnv() {
   ENV_FILES.forEach((fileName) => {
@@ -89,13 +99,17 @@ function getCompanyPrompt(companyUrl) {
 function getRolePrompt({ firstName, lastName, companyName }) {
   const personName = [firstName, lastName].filter(Boolean).join(" ");
 
-  return `Check LinkedIn for ${personName} at ${companyName}, return a JSON result with two fields:
-- "role": the person's current role or job title at the company
-- "confidence": an integer from 0 to 100 showing how confident you are that the role is accurate
-The first name and last name must match exactly. Do not return a role for partial, nickname, alternate spelling, or initials-only name matches.
-The company name may deviate slightly if it is clearly the same organisation, such as a group name, legal suffix, regional entity, or minor punctuation difference.
-Only return a role when you are at least 70% confident it is accurate.
-If no current role is found or confidence is below 70, return {"role": "", "confidence": 0}.`;
+  return `Find the LinkedIn profile for ${personName} at ${companyName}. Search for their profile and return their current role or job title at ${companyName}.`;
+}
+
+function getMessageAnalysisPrompt(message) {
+  return `Analyse this customer message and classify it into exactly these three fields:
+- "urgency": one of "Low", "Medium", or "High"
+- "sentiment": one of "Annoyed", "Content", or "Happy"
+- "query": one of "General", "Complaint", "New Business", or "Parts & Service"
+
+Message:
+${message}`;
 }
 
 function parseDeepSeekJson(content) {
@@ -107,11 +121,17 @@ function parseDeepSeekJson(content) {
     industry: String(parsed.industry || "").trim(),
     about: String(parsed.about || "").trim(),
     role: String(parsed.role || "").trim(),
-    confidence: Number(parsed.confidence || 0)
+    urgency: String(parsed.urgency || "").trim(),
+    sentiment: String(parsed.sentiment || "").trim(),
+    query: String(parsed.query || "").trim()
   };
 }
 
-async function callDeepSeek(prompt, signal) {
+async function callDeepSeek({
+  prompt,
+  signal,
+  systemPrompt = DEFAULT_SYSTEM_PROMPT
+}) {
   const apiKey = process.env.DEEPSEEK_API_KEY;
 
   if (!apiKey) {
@@ -130,7 +150,7 @@ async function callDeepSeek(prompt, signal) {
       messages: [
         {
           role: "system",
-          content: "Return valid JSON only. Do not include markdown or extra commentary."
+          content: systemPrompt
         },
         {
           role: "user",
@@ -140,6 +160,7 @@ async function callDeepSeek(prompt, signal) {
       response_format: {
         type: "json_object"
       },
+      temperature: 0,
       stream: false
     })
   });
@@ -150,11 +171,42 @@ async function callDeepSeek(prompt, signal) {
     throw new Error(payload.error?.message || "DeepSeek request failed.");
   }
 
-  return parseDeepSeekJson(payload.choices?.[0]?.message?.content || "{}");
+  const rawContent = payload.choices?.[0]?.message?.content || "{}";
+  return parseDeepSeekJson(rawContent);
 }
 
 async function enrichCompany(companyUrl) {
-  return callDeepSeek(getCompanyPrompt(companyUrl));
+  return callDeepSeek({
+    prompt: getCompanyPrompt(companyUrl)
+  });
+}
+
+async function analyzeMessage(message) {
+  if (!message) {
+    return {
+      urgency: "",
+      sentiment: "",
+      query: ""
+    };
+  }
+
+  try {
+    const result = await callDeepSeek({
+      prompt: getMessageAnalysisPrompt(message)
+    });
+
+    return {
+      urgency: result.urgency || "",
+      sentiment: result.sentiment || "",
+      query: result.query || ""
+    };
+  } catch (error) {
+    return {
+      urgency: "",
+      sentiment: "",
+      query: ""
+    };
+  }
 }
 
 async function findRole({ firstName, lastName, companyName }) {
@@ -166,22 +218,29 @@ async function findRole({ firstName, lastName, companyName }) {
   const timeout = setTimeout(() => controller.abort(), ROLE_LOOKUP_TIMEOUT_MS);
 
   try {
-    const result = await callDeepSeek(
-      getRolePrompt({
+    const result = await callDeepSeek({
+      prompt: getRolePrompt({
         firstName,
         lastName,
         companyName
       }),
-      controller.signal
-    );
+      signal: controller.signal,
+      systemPrompt: ROLE_SYSTEM_PROMPT
+    });
 
-    return result.confidence >= 80 ? result.role || "" : "";
+    return {
+      role: result.role || ""
+    };
   } catch (error) {
     if (error.name === "AbortError") {
-      return "";
+      return {
+        role: ""
+      };
     }
 
-    return "";
+    return {
+      role: ""
+    };
   } finally {
     clearTimeout(timeout);
   }
@@ -206,6 +265,7 @@ const server = http.createServer(async (request, response) => {
     const firstName = String(body.firstName || "").trim();
     const lastName = String(body.lastName || "").trim();
     const companyName = String(body.companyName || "").trim();
+    const message = String(body.message || "").trim();
 
     if (!companyUrl) {
       sendJson(response, 400, {
@@ -215,17 +275,22 @@ const server = http.createServer(async (request, response) => {
     }
 
     const companyResult = await enrichCompany(companyUrl);
-    const role = await findRole({
+    const roleResult = await findRole({
       firstName,
       lastName,
       companyName
     });
-
-    sendJson(response, 200, {
+    const messageResult = await analyzeMessage(message);
+    const responseBody = {
       industry: companyResult.industry,
       about: companyResult.about,
-      role
-    });
+      role: roleResult.role,
+      urgency: messageResult.urgency,
+      sentiment: messageResult.sentiment,
+      query: messageResult.query
+    };
+
+    sendJson(response, 200, responseBody);
   } catch (error) {
     sendJson(response, 500, {
       error: error.message || "Company enrichment failed."
