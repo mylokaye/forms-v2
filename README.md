@@ -26,7 +26,7 @@ Required project files:
   - Validation indicator: icon shown inside the field after pressing `Continue`
   - Page: 1
   - Button state: `Continue` is grey until the email looks valid, then blue
-- Message
+- Inquiry
   - Field name: `message`
   - Input type: `textarea`
   - Rows: 3
@@ -49,6 +49,15 @@ Required project files:
   - Page: 2 and 3
   - Visibility: hidden until page 2
   - Auto-population: derived from the email local part
+- Phone number
+  - Field name: `phone`
+  - Input type: `tel`
+  - Required: no
+  - Autocomplete: `tel`
+  - Input mode: `tel`
+  - Page: 2 and 3
+  - Visibility: hidden until page 2
+  - Auto-population: no, entered manually
 - Website
   - Field name: `website`
   - Input type: `url`
@@ -70,8 +79,8 @@ Required project files:
   - Input type: `text`
   - Required: no
   - Autocomplete: off
-  - Page: 2 and 3
-  - Visibility: hidden until page 2
+  - Page: 3
+  - Visibility: hidden until page 3
   - Auto-population: returned by the local DeepSeek proxy
 - Role
   - Field name: `role`
@@ -80,7 +89,7 @@ Required project files:
   - Autocomplete: `organization-title`
   - Page: 2 and 3
   - Visibility: hidden until page 2
-  - Auto-population: returned by the local DeepSeek proxy after checking LinkedIn for the person and company
+  - Auto-population: no, entered or corrected manually
 - About
   - Field name: `about`
   - Input type: `textarea`
@@ -113,23 +122,23 @@ Required project files:
 
 No `type="hidden"` fields have been implemented.
 
-The form is split into three pages. Page 1 shows email and message with no Back button. Page 2 shows first name, last name, website, company name, industry, and role with Back and Continue buttons. Page 3 shows all fields with Back and Finish buttons. The Finish button is currently a no-op apart from showing a finished message.
+The form is split into three named pages. Page 1 is `Inquiry` with the description `How can we help you today?`; it shows email and inquiry fields with no Back button. Page 2 is `Details` with the description `Confirm your information`; it shows first name, last name, phone number, role, website, and company name fields with Back and Continue buttons. Page 3 is `Finish` with the description `Confirm your inquiry`; it shows the Inquiry and Details review groups, then a full-width `Submit Inquiry` button, then the `Hidden` group. Page 3 has no Back button. A minimal numbered progress indicator at the top of the form turns completed steps into green ticks. The Submit Inquiry button is currently a no-op apart from showing a submitted message.
 
-The first name, last name, website, company name, industry, and role inputs are conditionally hidden from the UI until page 2. The about, urgency, sentiment, and query inputs are conditionally hidden until page 3. They remain visible in the HTML source and are documented in the form fields section above.
+The first name, last name, phone number, website, company name, and role inputs are conditionally hidden from the UI until page 2. The industry, about, urgency, sentiment, and query inputs are conditionally hidden until page 3. They remain visible in the HTML source and are documented in the form fields section above.
 
 Any future `type="hidden"` fields should remain visible in the HTML source and be documented here with their purpose. Hidden fields must not be used for tracking unless explicitly approved.
 
 ## Validation Rules
 
-On page 1, the `Continue` button is grey until the email value looks like a valid email address, then it turns blue. Pressing `Continue` checks the current value. A green tick appears inside the field when the value passes validation, and a red cross appears when it fails.
+On page 1, the `Continue` button is grey until the email value looks like a valid email address, then it turns blue. Visible non-hidden fields show a green tick when they contain data. The email field shows the green tick only when the value looks valid.
 
-When the email value passes validation, the first name, last name, website, and company name fields are auto-populated from the email address. The company name is capitalised from the email host name. The local proxy enriches industry, role, about, urgency, sentiment, and query before page 2 is shown. On page 2, `Continue` turns blue once first name, last name, website, and company name all have entries.
+When the email value passes validation, the first name, last name, website, and company name fields are auto-populated from the email address. The website field displays the email domain without the `https://` prefix, but the proxy request adds the prefix back before sending. The company name is capitalised from the email host name, and the form advances to page 2 without calling DeepSeek. On page 2, `Continue` turns blue once first name, last name, website, and company name all have entries.
 
-Pressing `Continue` on page 2 advances to page 3. Pressing `Finish` on page 3 does not submit to a backend yet. The role lookup asks DeepSeek to check LinkedIn for the person at the company. The first and last name must match exactly, while the company name may deviate slightly when it is clearly the same organisation. If no role is found within 5 seconds, the role field is left empty. If the email changes, the flow returns to page 1 until the new value is verified.
+Pressing `Continue` on page 2 calls the local proxy to enrich industry, about, urgency, sentiment, and query, then advances to page 3. If enrichment fails, the form still advances to page 3 and shows the error message so the inquiry can be confirmed manually. Pressing `Submit Inquiry` on page 3 does not submit to a backend yet. If the email changes, the flow returns to page 1 until the new value is verified.
 
 ## Submission Behaviour
 
-The page 1 `Continue` action validates the email field in the browser, derives the first name, last name, website, and company name, then posts the company website, first name, last name, company name, and message to the local-only proxy at `http://127.0.0.1:8787/enrich-company`. The proxy calls DeepSeek and returns `industry`, `role`, `about`, `urgency`, `sentiment`, and `query`.
+The page 1 `Continue` action validates the email field in the browser and derives the first name, last name, website, and company name. The page 2 `Continue` action posts the company website and inquiry message to the local-only proxy at `http://127.0.0.1:8787/enrich-company`. The proxy calls DeepSeek and returns `industry`, `about`, `urgency`, `sentiment`, and `query`.
 
 The form does not submit to a live backend and does not send the full form payload anywhere.
 
@@ -154,7 +163,7 @@ Target modern versions of:
 
 The form should be responsive and usable at `320px`, `375px`, `390px`, `768px`, `1024px`, and desktop widths.
 
-Verified detail fields are stacked on mobile and display in two columns on wider screens. The industry and role fields share the same responsive layout, while the about field spans the full available width.
+Verified detail fields are stacked on mobile and display in three columns on wider screens. Finish fields use the two-column responsive layout, with About spanning the full available width and Query sitting beside Industry on wider screens.
 
 ## Known Limitations
 
@@ -162,7 +171,6 @@ Verified detail fields are stacked on mobile and display in two columns on wider
 - Pressing `Continue` only shows local validation feedback until the email has been verified.
 - Auto-populated names and company details are simple guesses from the email address and may need user correction.
 - DeepSeek output is model-generated and should be reviewed before use.
-- The role lookup depends on model-accessible LinkedIn information and is intentionally left blank if no result is found within 5 seconds.
 - There are no automated tests or build scripts.
 
 ## Local DeepSeek Proxy
@@ -199,7 +207,7 @@ Visit {company_url}, return a JSON result with two fields:
 - "about": a short 1-2 sentence description of what the company does
 ```
 
-The proxy uses a dedicated LinkedIn profile researcher system prompt for role lookup using first name, last name, and company name. First and last names must match exactly; the company can vary slightly if it is clearly the same organisation. That role lookup is capped at 5 seconds and returns an empty role when nothing is found in time. The DeepSeek chat completions endpoint currently rejects `web_search` as a tool type, so the proxy does not send a `tools` block.
+The proxy does not perform role lookup. The Role field remains available for manual entry or correction in the form.
 
 ## Development Notes
 
@@ -222,11 +230,15 @@ The proxy uses a dedicated LinkedIn profile researcher system prompt for role lo
 - Added DeepSeek message analysis fields for urgency, sentiment, and query classification.
 - Split the form into a three-page Back/Continue/Finish flow.
 - Updated fields to use infield top-aligned labels with increased vertical spacing.
-- Updated verified detail fields to use a two-column layout on wider screens.
+- Updated verified detail fields to use a responsive multi-column layout on wider screens.
 - Updated the `Continue` button so it turns blue once first name, last name, website, and company name all have entries.
-- Added a local DeepSeek proxy flow that enriches industry and about fields after email verification.
-- Added a role field populated by a 5-second DeepSeek LinkedIn lookup when available.
-- Removed confidence scoring from role lookup so the proxy uses the returned role directly.
-- Tightened role lookup rules so first and last name must match exactly while company name can vary slightly.
-- Added a dedicated role lookup system prompt and removed the unsupported DeepSeek `web_search` tools block.
+- Added a local DeepSeek proxy flow that enriches industry and about fields after details are confirmed.
+- Kept Role as a manual field and removed DeepSeek role lookup.
+- Added phone number to the Details step and moved Industry to Finish.
+- Updated the Details step to use a three-column layout on wider screens.
+- Added section titles to the Finish step for Inquiry, Details, and Hidden fields.
+- Added a minimal numbered progress indicator with green completed ticks.
+- Added visible-field green tick status icons while leaving Hidden fields without status icons.
+- Hid the `https://` prefix in the Website field while preserving it for proxy requests.
+- Moved the full-width `Submit Inquiry` button above the Hidden fields on the Finish step.
 - Added pre-build README content describing the expected project structure, implementation constraints, documentation requirements, and current limitations.
