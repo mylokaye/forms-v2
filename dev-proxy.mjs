@@ -110,6 +110,14 @@ function parseDeepSeekJson(content) {
   };
 }
 
+function getPublicErrorMessage(error) {
+  if (error?.message === "fetch failed") {
+    return "DeepSeek request could not be reached. Check your network, VPN, firewall, or certificate settings.";
+  }
+
+  return error?.message || "Company enrichment failed.";
+}
+
 async function callDeepSeek({
   prompt,
   signal,
@@ -230,7 +238,7 @@ const server = http.createServer(async (request, response) => {
     sendJson(response, 200, responseBody);
   } catch (error) {
     sendJson(response, 500, {
-      error: error.message || "Company enrichment failed."
+      error: getPublicErrorMessage(error)
     });
   }
 });
