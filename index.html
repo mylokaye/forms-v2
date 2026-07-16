@@ -712,6 +712,7 @@
 
     // 2. Configuration
     const COMPANY_ENRICHMENT_ENDPOINT = "http://127.0.0.1:8787/enrich-company";
+    const COMPANY_ENRICHMENT_TIMEOUT_MS = 20000;
     const PAGE_COPY = {
       1: {
         title: "Inquiry",
@@ -737,6 +738,9 @@
       companyNameField
     ].filter(Boolean);
     let currentPage = 1;
+    let enrichmentController = null;
+    let enrichmentRequestId = 0;
+    let isEnrichmentLoading = false;
 
     // 3. Utility functions
     function capitaliseWord(value) {
@@ -881,6 +885,27 @@
         .every((field) => getFieldValue(field));
     }
 
+    function getEnrichmentSnapshot(companyUrl) {
+      return {
+        email: getFieldValue(emailField),
+        companyName: getFieldValue(companyNameField),
+        companyUrl,
+        message: getFieldValue(messageField)
+      };
+    }
+
+    function isCurrentEnrichmentRequest(requestId, controller, snapshot) {
+      return (
+        enrichmentRequestId === requestId &&
+        enrichmentController === controller &&
+        currentPage === 2 &&
+        snapshot.email === getFieldValue(emailField) &&
+        snapshot.companyName === getFieldValue(companyNameField) &&
+        snapshot.companyUrl === getWebsiteUrl(getFieldValue(websiteField)) &&
+        snapshot.message === getFieldValue(messageField)
+      );
+    }
+
     // 5. State / UI functions
     function setFormMessage(message, isError = false) {
       if (!formMessage) return;
@@ -904,6 +929,7 @@
     function updateNavigationState() {
       if (backButton) {
         backButton.hidden = currentPage !== 2;
+        backButton.disabled = isEnrichmentLoading;
       }
 
       if (formActions) {
@@ -1078,6 +1104,12 @@
     }
 
     function setVerifyLoading(isLoading) {
+      isEnrichmentLoading = isLoading;
+
+      if (backButton) {
+        backButton.disabled = isLoading;
+      }
+
       if (!verifyButton) return;
 
       verifyButton.disabled = isLoading;
@@ -1085,6 +1117,19 @@
 
       if (!isLoading) {
         updateNavigationState();
+      }
+    }
+
+    function cancelEnrichmentRequest() {
+      enrichmentRequestId += 1;
+
+      if (enrichmentController) {
+        enrichmentController.abort();
+        enrichmentController = null;
+      }
+
+      if (isEnrichmentLoading) {
+        setVerifyLoading(false);
       }
     }
 
@@ -1108,22 +1153,36 @@
         return false;
       }
 
+      const snapshot = getEnrichmentSnapshot(companyUrl);
+      const requestId = ++enrichmentRequestId;
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(
+        () => controller.abort(),
+        COMPANY_ENRICHMENT_TIMEOUT_MS
+      );
+
+      enrichmentController = controller;
       setVerifyLoading(true);
       setFormMessage("");
 
       try {
         const response = await fetch(COMPANY_ENRICHMENT_ENDPOINT, {
           method: "POST",
+          signal: controller.signal,
           headers: {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            companyUrl,
-            message: getFieldValue(messageField)
+            companyUrl: snapshot.companyUrl,
+            message: snapshot.message
           })
         });
 
         const result = await response.json();
+
+        if (!isCurrentEnrichmentRequest(requestId, controller, snapshot)) {
+          return null;
+        }
 
         if (!response.ok) {
           throw new Error(result.error || "Company enrichment failed.");
@@ -1138,20 +1197,32 @@
         setFormMessage("Company details verified.");
         return true;
       } catch (error) {
+        if (!isCurrentEnrichmentRequest(requestId, controller, snapshot)) {
+          return null;
+        }
+
         const message = error instanceof TypeError
           ? "Company enrichment proxy is not running."
-          : error.message || "Company enrichment failed.";
+          : error?.name === "AbortError"
+            ? "Company enrichment timed out. Please try again."
+          : error?.message || "Company enrichment failed.";
 
         setFormMessage(message, true);
         return false;
       } finally {
-        setVerifyLoading(false);
+        window.clearTimeout(timeoutId);
+
+        if (enrichmentController === controller) {
+          enrichmentController = null;
+          setVerifyLoading(false);
+        }
       }
     }
 
     function updateVerifyButtonState() {
       if (!emailField || !verifyButton) return;
 
+      cancelEnrichmentRequest();
       verifyButton.classList.toggle("button--ready", isValidEmail(emailField.value));
       updateFieldStatuses();
       resetValidationFeedback();
@@ -1164,6 +1235,11 @@
 
       updateFieldStatuses();
       updateNavigationState();
+    }
+
+    function handleVerifiedFieldInput() {
+      cancelEnrichmentRequest();
+      updateVerifiedButtonState();
     }
 
     async function handlePrimaryAction() {
@@ -1179,6 +1255,11 @@
         }
 
         const didEnrich = await enrichCompanyDetails();
+
+        if (didEnrich === null) {
+          return;
+        }
+
         showPage(3);
 
         if (didEnrich) {
@@ -1200,6 +1281,10 @@
     }
 
     function handleBack() {
+      if (isEnrichmentLoading) {
+        return;
+      }
+
       if (currentPage === 3) {
         showPage(2);
         setFormMessage("");
@@ -1222,7 +1307,7 @@
     [firstNameField, lastNameField, phoneField, roleField, websiteField, companyNameField]
       .filter(Boolean)
       .forEach((field) => {
-        field.addEventListener("input", updateVerifiedButtonState);
+        field.addEventListener("input", handleVerifiedFieldInput);
       });
 
     if (backButton) {

@@ -134,7 +134,7 @@ On page 1, the `Continue` button is grey until the email value looks like a vali
 
 When the email value passes validation, the first name, last name, website, and company name fields are auto-populated from the email address. The website field displays the email domain without the `https://` prefix, but the proxy request adds the prefix back before sending. The company name is capitalised from the email host name, and the form advances to page 2 without calling DeepSeek. On page 2, `Continue` turns blue once first name, last name, website, and company name all have entries.
 
-Pressing `Continue` on page 2 calls the local proxy to enrich industry, about, urgency, sentiment, and query, then advances to page 3. If enrichment fails, the form still advances to page 3 and shows the error message so the inquiry can be confirmed manually. Pressing `Submit Inquiry` on page 3 does not submit to a backend yet. If the email changes, the flow returns to page 1 until the new value is verified.
+Pressing `Continue` on page 2 calls the local proxy to enrich industry, about, urgency, sentiment, and query, then advances to page 3. The form cancels the request if the user edits a detail, and disables Back while it is loading. It also ignores results that no longer match the current details and stops the browser request after 20 seconds. If enrichment fails, the form still advances to page 3 and shows the error message so the inquiry can be confirmed manually. Pressing `Submit Inquiry` on page 3 does not submit to a backend yet. If the email changes, the flow returns to page 1 until the new value is verified.
 
 ## Submission Behaviour
 
@@ -168,14 +168,17 @@ Verified detail fields are stacked on mobile and display in three columns on wid
 ## Known Limitations
 
 - The DeepSeek integration depends on the local `dev-proxy.mjs` helper being running.
+- Each DeepSeek request made by the proxy times out after 8 seconds; because company and message enrichment run sequentially, a complete enrichment can take up to roughly 16 seconds.
 - Pressing `Continue` only shows local validation feedback until the email has been verified.
 - Auto-populated names and company details are simple guesses from the email address and may need user correction.
 - DeepSeek output is model-generated and should be reviewed before use.
 - There are no automated tests or build scripts.
 
-## Local DeepSeek Proxy
+## Required Local Startup
 
-Run the static form server:
+The static form server and the local enrichment proxy are one required local startup. Run both processes before opening the form; neither process provides the complete experience on its own.
+
+In one terminal, run the static form server:
 
 ```sh
 python3 -m http.server 8000
@@ -241,4 +244,5 @@ The proxy does not perform role lookup. The Role field remains available for man
 - Added visible-field green tick status icons while leaving Hidden fields without status icons.
 - Hid the `https://` prefix in the Website field while preserving it for proxy requests.
 - Moved the full-width `Submit Inquiry` button above the Hidden fields on the Finish step.
+- Added request cancellation, stale-response protection, and timeouts to the local enrichment flow.
 - Added pre-build README content describing the expected project structure, implementation constraints, documentation requirements, and current limitations.

@@ -7,6 +7,7 @@ const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
 const MODEL = "deepseek-v4-flash";
 const ENV_FILES = [".env.local", ".env"];
 const DEFAULT_SYSTEM_PROMPT = "Return valid JSON only. Do not include markdown or extra commentary.";
+const DEEPSEEK_REQUEST_TIMEOUT_MS = 8000;
 
 function loadLocalEnv() {
   ENV_FILES.forEach((fileName) => {
@@ -111,6 +112,10 @@ function parseDeepSeekJson(content) {
 }
 
 function getPublicErrorMessage(error) {
+  if (error?.name === "AbortError") {
+    return "DeepSeek request timed out. Please try again.";
+  }
+
   if (error?.message === "fetch failed") {
     return "DeepSeek request could not be reached. Check your network, VPN, firewall, or certificate settings.";
   }
@@ -120,7 +125,6 @@ function getPublicErrorMessage(error) {
 
 async function callDeepSeek({
   prompt,
-  signal,
   systemPrompt = DEFAULT_SYSTEM_PROMPT
 }) {
   const apiKey = process.env.DEEPSEEK_API_KEY;
@@ -129,41 +133,51 @@ async function callDeepSeek({
     throw new Error("Missing DEEPSEEK_API_KEY environment variable.");
   }
 
-  const response = await fetch(DEEPSEEK_API_URL, {
-    method: "POST",
-    signal,
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      response_format: {
-        type: "json_object"
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    DEEPSEEK_REQUEST_TIMEOUT_MS
+  );
+
+  try {
+    const response = await fetch(DEEPSEEK_API_URL, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
       },
-      temperature: 0,
-      stream: false
-    })
-  });
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        response_format: {
+          type: "json_object"
+        },
+        temperature: 0,
+        stream: false
+      })
+    });
 
-  const payload = await response.json();
+    const payload = await response.json();
 
-  if (!response.ok) {
-    throw new Error(payload.error?.message || "DeepSeek request failed.");
+    if (!response.ok) {
+      throw new Error(payload.error?.message || "DeepSeek request failed.");
+    }
+
+    const rawContent = payload.choices?.[0]?.message?.content || "{}";
+    return parseDeepSeekJson(rawContent);
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const rawContent = payload.choices?.[0]?.message?.content || "{}";
-  return parseDeepSeekJson(rawContent);
 }
 
 async function enrichCompany(companyUrl) {
